@@ -1,2 +1,3 @@
 # OS_VME_08_GROUP5
-Bài tập lớn môn Hệ Điều Hành, Lưu trữ code, báo cáo và tiến trình thực hiện
+# Project Name: Build an APP for demonstration Virtual Memory management algorithm: LRU, FIFO and OPT
+
