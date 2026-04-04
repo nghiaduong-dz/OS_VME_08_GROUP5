@@ -8,13 +8,13 @@
 - **Group:** 5
 
 ## Team Members & Duty Roster
-| Full name | Student ID | Mission |
+| **Full name** | **Student ID** | **Mission** |
 | :--- | :--- | :--- |
-| **Phan Đình Phát** | 060206002816 | Algorithm Developer: Implement FIFO, LRU, OPT and calculate page faults/hits. |
-| **Nguyễn Thị Xuân Tuyền** | 054306001845 | Data & File Handler: Read input CSV and export output CSV. |
-| **Nguyễn Thanh Tuấn** | 051206002660 | GUI Developer: Build GUI, load CSV, and display results. |
-| **Dương Trọng Nghĩa** | 066206008908 | Tester & Integrator: Test, debug, integrate modules, and record demo video. |
-| **Kim Nhựt Hoàng** | 084206006510 | Documentation & Presentation: Write report and create slides. |
+| Phan Đình Phát | 060206002816 | Algorithm Developer: Implement FIFO, LRU, OPT and calculate page faults/hits. |
+| Nguyễn Thị Xuân Tuyền | 054306001845 | Data & File Handler: Read input CSV and export output CSV. |
+| Nguyễn Thanh Tuấn | 051206002660 | GUI Developer: Build GUI, load CSV, and display results. |
+| Dương Trọng Nghĩa | 066206008908 | Tester & Integrator: Test, debug, integrate modules, and record demo video. |
+| Kim Nhựt Hoàng | 084206006510 | Documentation & Presentation: Write report and create slides. |
 
 ## 📂 Repository Structure
 This repository strictly follows the requirements for the OS project:
