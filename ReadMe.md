@@ -15,3 +15,14 @@
 | **Nguyễn Thanh Tuấn** | 051206002660 | GUI Developer: Build GUI, load CSV, and display results. |
 | **Dương Trọng Nghĩa** | 066206008908 | Tester & Integrator: Test, debug, integrate modules, and record demo video. |
 | **Kim Nhựt Hoàng** | 084206006510 | Documentation & Presentation: Write report and create slides. |
+
+## 📂 Repository Structure
+This repository strictly follows the requirements for the OS project:
+
+## Project Description
+This project is a GUI Application designed to simulate and demonstrate Virtual Memory Page Replacement Algorithms:
+- **FIFO** (First In First Out)
+- **LRU** (Least Recently Used)
+- **OPT** (Optimal Page Replacement)
+
+
