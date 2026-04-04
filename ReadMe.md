@@ -7,6 +7,7 @@
 - **Course section code:** 7480201390613
 - **Group:** 5
 
+## Team Members & Duty Roster
 | Full name | Student ID | Mission |
 | :--- | :--- | :--- |
 | **Phan Đình Phát** | 060206002816 | Algorithm Developer: Implement FIFO, LRU, OPT and calculate page faults/hits. |
