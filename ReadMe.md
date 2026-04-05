@@ -26,7 +26,7 @@ This project is a GUI Application designed to simulate and demonstrate Virtual M
 - **OPT** (Optimal Page Replacement)
 
 Key Features
-- GUI Desktop Application: Runs natively on Windows without errors or exceptions.
+- GUI Application: Runs natively on Windows without errors or exceptions.
 - Robust Exception Handling: Gracefully handles invalid data files (e.g., negative frames, alphabetical characters).
 - Data Handling: Imports custom simulation data from CSV and exports highly detailed calculation steps to output CSVs.
 - Visualization: Shows results on the screen including Gantt charts and main/virtual memory allocation.
