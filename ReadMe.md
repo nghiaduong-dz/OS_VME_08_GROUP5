@@ -19,10 +19,10 @@
 ## 📂 Repository Structure
 This repository strictly follows the requirements for the OS project:
 - 📁 **`Code/`** : Contains the source code of the GUI application (C++).
-  - `/input/` : Data tables (CSV files) used as input for the algorithms (includes textbook proofs, Belady's anomaly test cases, and stress test data).
+  - `/input/` : Data tables (CSV files) used as input for the algorithms (includes textbook proofs, Belady's anomaly test cases, stress test data,...).
   - `/output/` : Detailed step-by-step result exports (CSV files).
 - 📁 **`DOCX/`** : Contains the project report (Word DOC/DOCX format).
-- 📁 **`Extra/`** : Contains extra information, proofs of correctness (compared with textbook), images, and Performance/Stress Test datasets.
+- 📁 **`Extra/`** : Contains extra information, proofs of correctness (compared with textbook), images.
 - 📁 **`PPTX/`** : Contains the presentation slides (Powerpoint PPT/PPTX).
 
 ## Project Description
