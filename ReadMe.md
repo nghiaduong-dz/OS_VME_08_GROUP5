@@ -18,6 +18,12 @@
 
 ## 📂 Repository Structure
 This repository strictly follows the requirements for the OS project:
+- 📁 **`Code/`** : Contains the source code of the GUI application (C++).
+  - `/input/` : Data tables (CSV files) used as input for the algorithms (includes textbook proofs, Belady's anomaly test cases, and stress test data).
+  - `/output/` : Detailed step-by-step result exports (CSV files).
+- 📁 **`DOCX/`** : Contains the project report (Word DOC/DOCX format).
+- 📁 **`Extra/`** : Contains extra information, proofs of correctness (compared with textbook), images, and Performance/Stress Test datasets.
+- 📁 **`PPTX/`** : Contains the presentation slides (Powerpoint PPT/PPTX).
 
 ## Project Description
 This project is a GUI Application developed in C++ designed to simulate and demonstrate Virtual Memory Page Replacement Algorithms:
@@ -39,7 +45,7 @@ Designed for straightforward modifications and edge-case testing, input files st
 ### 2. Output CSV Design
 The application exports detailed CSVs intended for mapping to Gantt and memory allocation charts.
 - **Detailed Steps:** Tracks memory blocks per step (`Step | Page | Frame_1 | Frame_2 | Page_Fault_Flag | Total_Faults`).
-- **Stress Test Defense Protocol:** To fulfill academic bottlenecking theories, testcases exceeding a threshold of `1,000` sequential requests trigger a "defense mode" - Omit generating Step reports and strictly isolate purely runtime analytics (Execution times, Error Rates, Hit Rates) to protect local RAM overheads.
+- **Stress Test Defense Protocol:** To fulfill academic bottlenecking theories, testcases exceeding a threshold of `1,000` sequential requests trigger a defense mode - Omit generating Step reports and strictly isolate purely runtime analytics (Execution times, Error Rates, Hit Rates) to protect local RAM overheads.
 
 ## Key Features
 - GUI Application: Runs natively on Windows without errors or exceptions.
@@ -47,4 +53,4 @@ The application exports detailed CSVs intended for mapping to Gantt and memory a
 - Data Handling: Imports custom simulation data from CSV and exports highly detailed calculation steps to output CSVs.
 - Visualization: Shows results on the screen including Gantt charts and main/virtual memory allocation.
 - Correctness Proof: Results are strictly compared and validated against textbook examples (Operating System Concepts 10th Edition).
-
+- Stress & Performance Testing: Capable of handling massive reference strings (e.g., 1,000,000 records) using optimized file I/O to benchmark the algorithms.
