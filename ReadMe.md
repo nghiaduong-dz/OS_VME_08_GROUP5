@@ -18,7 +18,7 @@
 
 ## 📂 Repository Structure
 This repository strictly follows the requirements for the OS project:
-- 📁 **`Code/`** : Contains the source code of the GUI application (C++).
+- 📁 **`Code/`** : Contains the source code of the GUI application (python).
   - `/input/` : Data tables (CSV files) used as input for the algorithms (includes textbook proofs, Belady's anomaly test cases, stress test data,...).
   - `/output/` : Detailed step-by-step result exports (CSV files).
 - 📁 **`DOCX/`** : Contains the project report (Word DOC/DOCX format).
