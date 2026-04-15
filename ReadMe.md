@@ -26,7 +26,7 @@ This repository strictly follows the requirements for the OS project:
 - 📁 **`PPTX/`** : Contains the presentation slides (Powerpoint PPT/PPTX).
 
 ## Project Description
-This project is a GUI Application developed in C++ designed to simulate and demonstrate Virtual Memory Page Replacement Algorithms:
+This project is a GUI Application developed in python designed to simulate and demonstrate Virtual Memory Page Replacement Algorithms:
 - **FIFO** (First In First Out)
 - **LRU** (Least Recently Used)
 - **OPT** (Optimal Page Replacement)
