@@ -409,15 +409,6 @@ class App(tk.Tk):
                           fill=self.TEXT2, font=("Consolas", 12))
             return
 
-        CW, CH   = 44, 36
-        LABEL_W  = 90
-        PAD_TOP  = 20
-        PAD_LEFT = 10
-
-        total_w = PAD_LEFT + LABEL_W + len(steps) * CW + 20
-        total_h = PAD_TOP  + (n + 3) * CH + 20
-        c.configure(scrollregion=(0, 0, total_w, total_h))
-
         faults = sum(1 for s in steps if s.is_fault)
         hits   = len(steps) - faults
         hr     = hits / len(steps) * 100
@@ -426,6 +417,21 @@ class App(tk.Tk):
         self.lbl_rate.config(text=f"{hr:.1f}%")
         self.lbl_time.config(text=f"{self.last_exec:.2f}ms")
         self.gantt_title.config(text=f"Algorithm: {algo_name}", fg=header_color)
+
+        if len(steps) > 1000:
+            c.create_text(500, 140, text=f"⚡ STRESS TEST DEFENSE PROTOCOL ACTIVATED ⚡\n\nDataset is excessively large ({len(steps)} requests).\nGantt chart block rendering is omitted to prevent Tkinter GUI bottlenecks.\nRefer to the 'Statistics' and 'Comparison' tabs for strict mathematical runtime analytics.",
+                          fill=self.FAULT, font=("Consolas", 12, "bold"), justify="center")
+            c.configure(scrollregion=(0, 0, 1000, 300))
+            return
+
+        CW, CH   = 44, 36
+        LABEL_W  = 90
+        PAD_TOP  = 20
+        PAD_LEFT = 10
+
+        total_w = PAD_LEFT + LABEL_W + len(steps) * CW + 20
+        total_h = PAD_TOP  + (n + 3) * CH + 20
+        c.configure(scrollregion=(0, 0, total_w, total_h))
 
         def cell(col, row, text, bg, fg="#ffffff", bold=False):
             x0 = PAD_LEFT + LABEL_W + col * CW
