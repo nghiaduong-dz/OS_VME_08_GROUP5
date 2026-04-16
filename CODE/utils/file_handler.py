@@ -109,27 +109,22 @@ class FileHandler:
             w.writerow(header)
 
             # Data rows
-            if len(steps) > 1000:
-                w.writerow(["[STRESS TEST DEFENSE PROTOCOL ACTIVATED]"])
-                w.writerow([f"Skipped rendering {len(steps)} detailed steps to protect memory overhead during Export."])
-                w.writerow(["Algorithm Analytics generated successfully in the header above."])
-            else:
-                tf, th = 0, 0
-                for i, s in enumerate(steps):
-                    if s.is_fault: tf += 1
-                    else:          th += 1
-                    row = [
-                        i + 1,
-                        s.page,
-                        "FAULT" if s.is_fault else "HIT",
-                        s.evicted if s.evicted != -1 else "-"
-                    ]
-                    row += [
-                        s.frames[f] if f < len(s.frames) and s.frames[f] != -1 else "-"
-                        for f in range(frame_size)
-                    ]
-                    row += [tf, th]
-                    w.writerow(row)
+            tf, th = 0, 0
+            for i, s in enumerate(steps):
+                if s.is_fault: tf += 1
+                else:          th += 1
+                row = [
+                    i + 1,
+                    s.page,
+                    "FAULT" if s.is_fault else "HIT",
+                    s.evicted if s.evicted != -1 else "-"
+                ]
+                row += [
+                    s.frames[f] if f < len(s.frames) and s.frames[f] != -1 else "-"
+                    for f in range(frame_size)
+                ]
+                row += [tf, th]
+                w.writerow(row)
 
     @staticmethod
     def create_sample(path: str):
