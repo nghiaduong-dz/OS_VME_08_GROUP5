@@ -18,9 +18,15 @@
 
 ## 📂 Repository Structure
 This repository strictly follows the requirements for the OS project:
-- 📁 **`Code/`** : Contains the source code of the GUI application (python).
-  - `/input/` : Data tables (CSV files) used as input for the algorithms (includes textbook proofs, Belady's anomaly test cases, stress test data,...).
-  - `/output/` : Detailed step-by-step result exports (CSV files).
+- 📁 **`CODE/`** : Contains the source code of the GUI application (Python 3.8+).
+  - `main.py` : Main execution entry-point (Run `python main.py`, requires no external dependencies as it uses native `tkinter`).
+  - `/algorithms/` : Core logic modules (`fifo.py`, `lru.py`, `opt.py`).
+  - `/GUI/` : Application interface configurations (`display.py`).
+  - `/models/` : Data representation structures tracing memory steps (`step.py`).
+  - `/utils/` : Helper utilities implementing the data architecture (`file_handler.py`).
+  - `/unit_tests/` : Automated test suites verifying algorithm mathematical precision (`test_algorithms.py`).
+  - `/input/` : Data tables (CSV files) used as input for the algorithms.
+  - `/Output/` : Detailed step-by-step result exports (CSV files).
 - 📁 **`DOCX/`** : Contains the project report (Word DOC/DOCX format).
 - 📁 **`Extra/`** : Contains extra information, proofs of correctness (compared with textbook), images.
 - 📁 **`PPTX/`** : Contains the presentation slides (Powerpoint PPT/PPTX).
@@ -42,6 +48,13 @@ Designed for straightforward modifications and edge-case testing, input files st
 > **Strict Input Policies:**
 > The `FileHandler` enforces rigorous exception protections. It instantly blocks negative frame sizes (e.g., `-3`), filters unparseable characters instead of crashing, and securely processes file missing issues.
 
+#### Included Test Suites (`CODE/input/`):
+To thoroughly evaluate the algorithms and exception handling, the following test files are provided natively:
+- **Basic & Textbook Proofs (`basic_testcase_1.csv`, `basic_testcase_2.csv`, `input.csv`):** Standard OS Concepts textbook examples with 3 and 4 frames designed for manual verification and presentation slides.
+- **Belady's Anomaly (`belady_test.csv`):** Specific reference strings proving that FIFO can generate more page faults when allocated more frames.
+- **Edge Cases & Exception Testing (`testcase_extreme_page_fault.csv`, `testcase_no_page_fault.csv`, `testcase_invalid_negative_frame.csv`, `testcase_invalid_characters.csv`, `testcase_large_frames.csv`):** Tests the system's stability against thrashing, best-case scenarios, negative inputs, unparseable alphabetic characters, and over-allocation.
+- **Stress & Benchmark Testing (`stress_test_1.csv`, `stress_test_2.csv`, `stress_test_3.csv`):** Massive structural data files to benchmark algorithm execution times and test the 1,000-request UI defense protocol.
+
 ### 2. Output CSV Design
 The application exports detailed CSVs intended for mapping to Gantt and memory allocation charts.
 - **Detailed Steps:** Tracks memory blocks per step (`Step | Page | Frame_1 | Frame_2 | Page_Fault_Flag | Total_Faults`).
@@ -53,4 +66,4 @@ The application exports detailed CSVs intended for mapping to Gantt and memory a
 - Data Handling: Imports custom simulation data from CSV and exports highly detailed calculation steps to output CSVs.
 - Visualization: Shows results on the screen including Gantt charts and main/virtual memory allocation.
 - Correctness Proof: Results are strictly compared and validated against textbook examples (Operating System Concepts 10th Edition).
-- Stress & Performance Testing: Capable of handling massive reference strings (e.g., 1,000,000 records) using optimized file I/O to benchmark the algorithms.
+- Stress & Performance Testing: Capable of handling massive reference strings using optimized file I/O to benchmark the algorithms.
