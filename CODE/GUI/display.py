@@ -1,63 +1,76 @@
 """
-GUI/display.py
-Giao dien do hoa chinh cua ung dung (tkinter).
-Hien thi: Gantt chart, so sanh thuat toan, proof vs giao trinh.
+GUI/display.py  
+OS_VME_08 — Group 5 — HCMUTRANS
 """
-
+from __future__ import annotations
+import os, sys, time
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
-import time
-import os
 
-from algorithms.fifo      import FIFO
-from algorithms.lru       import LRU
-from algorithms.opt       import OPT
-from utils.file_handler   import FileHandler
+from GUI.widgets    import C, F, HLine, build_notebook_style
+from GUI.gantt      import GanttTab
+from GUI.compare    import CompareTab
+
+from algorithms.fifo     import FIFO
+from algorithms.lru      import LRU
+from algorithms.opt      import OPT
+from algorithms.registry import AlgoRegistry
+from utils.file_handler  import FileHandler
+from models.step         import Step
 from unit_tests.test_algorithms import TestRunner
 
 
 class App(tk.Tk):
-    # ---- Color palette ----------------------------------------
-    BG      = "#1e1e2e"
-    BG2     = "#2a2a3e"
-    BG3     = "#313145"
-    ACCENT  = "#7c8cf8"
-    FAULT   = "#f38ba8"
-    HIT     = "#a6e3a1"
-    NEW_PG  = "#89b4fa"
-    TEXT    = "#cdd6f4"
-    TEXT2   = "#6c7086"
-    YELLOW  = "#f9e2af"
-    BORDER  = "#45475a"
-    WHITE   = "#ffffff"
 
     def __init__(self):
         super().__init__()
         self.title("Virtual Memory Page Replacement Simulator — OS_VME_08 Group 5")
-        self.geometry("1280x820")
-        self.minsize(1100, 700)
-        self.configure(bg=self.BG)
+        self.geometry("1280x800")
+        self.minsize(1050, 650)
+        self.configure(bg=C.BG)
         self.resizable(True, True)
 
-        # State
-        self.frame_size = tk.IntVar(value=3)
-        self.ref_string = []
-        self.last_steps = []
-        self.last_algo  = ""
-        self.last_exec  = 0.0
+        self.frame_size  = tk.IntVar(value=3)
+        self.ref_string  : list[int] = []
+        self.last_steps  : list[Step] = []
+        self.last_algo   : str = ""
+        self.last_exec   : float = 0.0
+        self._all_results: dict = {}
 
-        # Init sample files
         os.makedirs("input",  exist_ok=True)
         os.makedirs("output", exist_ok=True)
-        if not os.path.exists("input/input.csv"):
-            FileHandler.create_sample("input/input.csv")
-        if not os.path.exists("input/belady_test.csv"):
-            FileHandler.create_belady("input/belady_test.csv")
-
+        FileHandler.create_sample("input/input.csv")
+        FileHandler.create_belady("input/belady_test.csv")
         self._load_default()
-        self._build_ui()
 
-    # ---- Load default input ------------------------------------
+        build_notebook_style()
+        self._build_ui()
+        self._style_ttk()
+
+    # ── ttk extra styling ──────────────────────────────────────
+    def _style_ttk(self):
+        s = ttk.Style()
+        # General scrollbar (used in tabs)
+        s.configure("TScrollbar",
+                     troughcolor=C.BG2, background=C.SURFACE,
+                     arrowcolor=C.TEXT2, borderwidth=0,
+                     relief="flat")
+        s.map("TScrollbar",
+              background=[("active", C.ACCENT), ("!active", C.SURFACE)])
+
+        # Slim dark scrollbar for the left sidebar
+        s.configure("Left.Vertical.TScrollbar",
+                     troughcolor=C.BG2,
+                     background=C.BG3,
+                     arrowcolor=C.BG2,       # hide arrows (same as trough)
+                     arrowsize=0,
+                     borderwidth=0,
+                     relief="flat",
+                     width=6)               # thin strip
+        s.map("Left.Vertical.TScrollbar",
+              background=[("active", C.ACCENT), ("!active", C.SURFACE)])
+
+    # ── Default load ───────────────────────────────────────────────────
     def _load_default(self):
         try:
             fs, rs = FileHandler.read_input("input/input.csv")
@@ -65,284 +78,293 @@ class App(tk.Tk):
             self.ref_string = rs
         except Exception:
             self.frame_size.set(3)
-            self.ref_string = [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3]
+            self.ref_string = [7,0,1,2,0,3,0,4,2,3,0,3]
 
-    # ============================================================
-    #  BUILD UI
-    # ============================================================
+    # ── Build UI ───────────────────────────────────────────────────────
     def _build_ui(self):
         self._build_header()
         self._build_body()
         self._build_statusbar()
 
     def _build_header(self):
-        hf = tk.Frame(self, bg=self.BG2, pady=10)
+        hf = tk.Frame(self, bg=C.BG2, pady=10)
         hf.pack(fill="x")
-        tk.Label(hf,
-                 text="Virtual Memory Page Replacement Simulator",
-                 font=("Consolas", 18, "bold"),
-                 bg=self.BG2, fg=self.ACCENT).pack()
+
+        # Info button — top right corner
+        info_btn = tk.Button(hf, text="👥  Nhóm 5 - Info",
+                              font=F(9, bold=True),
+                              bg=C.SURFACE, fg=C.YELLOW,
+                              relief="flat", cursor="hand2",
+                              padx=12, pady=5,
+                              activebackground=C.BG3,
+                              activeforeground=C.YELLOW,
+                              command=self._show_team)
+        info_btn.place(relx=1.0, rely=0.0, anchor="ne", x=-10, y=8)
+        self._hover(info_btn, C.BG3, C.SURFACE, C.YELLOW)
+
+        tk.Label(hf, text="Virtual Memory Page Replacement Simulator",
+                 font=F(17, bold=True), bg=C.BG2, fg=C.ACCENT).pack()
         tk.Label(hf,
                  text="OS_VME_08  ·  Group 5  ·  HCMUTRANS  ·  FIFO | LRU | OPT",
-                 font=("Consolas", 10),
-                 bg=self.BG2, fg=self.TEXT2).pack()
+                 font=F(9), bg=C.BG2, fg=C.TEXT2).pack()
 
     def _build_body(self):
-        body = tk.Frame(self, bg=self.BG)
-        body.pack(fill="both", expand=True, padx=0, pady=0)
+        pane = tk.PanedWindow(self, orient="horizontal",
+                               bg=C.BORDER, sashwidth=4, sashrelief="flat")
+        pane.pack(fill="both", expand=True, padx=6, pady=6)
 
-        left = tk.Frame(body, bg=self.BG2, width=300)
-        left.pack(side="left", fill="y", padx=(10,5), pady=10)
+        left = tk.Frame(pane, bg=C.BG2, width=268)
         left.pack_propagate(False)
         self._build_left(left)
+        pane.add(left, minsize=230)
 
-        right = tk.Frame(body, bg=self.BG)
-        right.pack(side="left", fill="both", expand=True, padx=(5,10), pady=10)
+        right = tk.Frame(pane, bg=C.BG)
         self._build_right(right)
+        pane.add(right, minsize=680)
 
-    # ---- LEFT PANEL --------------------------------------------
-    def _build_left(self, parent):
+    # ── LEFT PANEL (scrollable) ────────────────────────────────────
+    def _build_left(self, outer_frame):
+        """Wrap nội dung trong Canvas → cuộn được khi nội dung dài."""
+        # Canvas + scrollbar
+        cv  = tk.Canvas(outer_frame, bg=C.BG2, highlightthickness=0)
+        vsb = ttk.Scrollbar(outer_frame, orient="vertical",
+                             command=cv.yview,
+                             style="Left.Vertical.TScrollbar")
+        cv.configure(yscrollcommand=vsb.set)
+        vsb.pack(side="right", fill="y")
+        cv.pack(side="left", fill="both", expand=True)
+
+        # Inner frame that actually holds widgets
+        p   = tk.Frame(cv, bg=C.BG2)
+        cw  = cv.create_window((0, 0), window=p, anchor="nw")
+
+        def _on_frame_cfg(e):
+            cv.configure(scrollregion=cv.bbox("all"))
+        def _on_canvas_cfg(e):
+            cv.itemconfig(cw, width=e.width)
+        p.bind("<Configure>", _on_frame_cfg)
+        cv.bind("<Configure>", _on_canvas_cfg)
+
+        # Mousewheel scrolling
+        def _mw(e):
+            cv.yview_scroll(int(-1 * (e.delta / 120)), "units")
+        cv.bind_all("<MouseWheel>", _mw)
+
+        self._left_build(p)
+
+    def _left_build(self, p):
+        """Actual left-panel widgets, placed into the scrollable inner frame."""
+
         def sec(txt):
-            tk.Label(parent, text=txt,
-                     font=("Consolas", 9, "bold"),
-                     bg=self.BG2, fg=self.TEXT2).pack(anchor="w", padx=12, pady=(12,2))
+            tk.Label(p, text=txt, font=F(8, bold=True),
+                     bg=C.BG2, fg=C.TEXT2).pack(
+                anchor="w", padx=14, pady=(12, 2))
 
         def hline():
-            tk.Frame(parent, bg=self.BORDER, height=1).pack(fill="x", padx=8, pady=3)
+            HLine(p).pack(fill="x", padx=10, pady=4)
 
-        tk.Label(parent, text="⚙  Configuration",
-                 font=("Consolas", 12, "bold"),
-                 bg=self.BG2, fg=self.WHITE).pack(pady=(14,4))
+        # Title
+        tk.Label(p, text="⚙  Configuration",
+                 font=F(12, bold=True), bg=C.BG2, fg=C.WHITE
+                 ).pack(pady=(14, 4))
         hline()
 
-        # Input file
+        # ── Input file ──
         sec("INPUT FILE")
-        self.file_lbl = tk.Label(parent, text="input/input.csv",
-                                 font=("Consolas", 9), bg=self.BG3,
-                                 fg=self.YELLOW, wraplength=260,
-                                 justify="left", padx=8, pady=4)
-        self.file_lbl.pack(fill="x", padx=8, pady=2)
-        tk.Button(parent, text="Load CSV file",
-                  command=self._load_csv,
-                  font=("Consolas", 10), bg=self.BG3,
-                  fg=self.ACCENT, relief="flat",
-                  cursor="hand2", pady=5).pack(fill="x", padx=8, pady=2)
+        self._file_lbl = tk.Label(p, text="input/input.csv",
+                                   font=F(9), bg=C.BG3, fg=C.YELLOW,
+                                   wraplength=240, justify="left",
+                                   padx=8, pady=5)
+        self._file_lbl.pack(fill="x", padx=10, pady=(0, 3))
+        self._lbtn(p, "📂  Load CSV file", self._load_csv, C.ACCENT)
 
-        # Frame size
+        # ── Frame size slider (custom) ──
         sec("FRAME SIZE")
-        row = tk.Frame(parent, bg=self.BG2)
-        row.pack(fill="x", padx=8)
-        tk.Scale(row, from_=1, to=10,
-                 variable=self.frame_size,
-                 orient="horizontal",
-                 bg=self.BG2, fg=self.TEXT,
-                 highlightthickness=0,
-                 troughcolor=self.BG3,
-                 font=("Consolas", 9)).pack(side="left", fill="x", expand=True)
-        tk.Label(row, textvariable=self.frame_size,
-                 width=3, font=("Consolas", 12, "bold"),
-                 bg=self.BG2, fg=self.YELLOW).pack(side="left", padx=4)
+        self._build_frame_slider(p)
 
-        # Reference string
+        # ── Reference string ──
         sec("REFERENCE STRING")
-        self.ref_entry = tk.Text(parent, height=3, width=28,
-                                 font=("Consolas", 10), bg=self.BG3,
-                                 fg=self.TEXT, insertbackground=self.TEXT,
-                                 relief="flat", padx=6, pady=4)
-        self.ref_entry.pack(fill="x", padx=8, pady=2)
-        self.ref_entry.insert("1.0", ",".join(map(str, self.ref_string)))
-        tk.Label(parent, text="Comma-separated page numbers",
-                 font=("Consolas", 8),
-                 bg=self.BG2, fg=self.TEXT2).pack(anchor="w", padx=12)
+        self._ref_entry = tk.Text(p, height=3, width=26,
+                                   font=F(10), bg=C.BG3, fg=C.TEXT,
+                                   insertbackground=C.TEXT,
+                                   relief="flat", padx=6, pady=5,
+                                   selectbackground=C.SURFACE)
+        self._ref_entry.pack(fill="x", padx=10, pady=(0, 2))
+        self._ref_entry.insert("1.0", ",".join(map(str, self.ref_string)))
+        tk.Label(p, text="Comma-separated page numbers",
+                 font=F(8), bg=C.BG2, fg=C.TEXT2
+                 ).pack(anchor="w", padx=14, pady=(0, 2))
 
         hline()
 
-        # Run buttons
+        # ── Run buttons ──
         sec("RUN ALGORITHM")
-        for label, algo, color in [
-            ("▶  Run FIFO",  "FIFO",  "#89b4fa"),
-            ("▶  Run LRU",   "LRU",   "#a6e3a1"),
-            ("▶  Run OPT",   "OPT",   "#cba6f7"),
+        for label, algo, col in [
+            ("▶  Run FIFO", "FIFO", C.ALGO["FIFO"]),
+            ("▶  Run LRU",  "LRU",  C.ALGO["LRU"]),
+            ("▶  Run OPT",  "OPT",  C.ALGO["OPT"]),
         ]:
-            tk.Button(parent, text=label,
-                      command=lambda a=algo: self._run(a),
-                      font=("Consolas", 11, "bold"),
-                      bg=self.BG3, fg=color,
-                      relief="flat", cursor="hand2", pady=7
-                      ).pack(fill="x", padx=8, pady=3)
+            self._lbtn(p, label, lambda a=algo: self._run(a), col, size=11)
 
-        tk.Button(parent, text="⚡  Run ALL & Compare",
-                  command=self._run_all,
-                  font=("Consolas", 11, "bold"),
-                  bg=self.ACCENT, fg=self.BG,
-                  relief="flat", cursor="hand2", pady=8
-                  ).pack(fill="x", padx=8, pady=4)
+        # Run ALL
+        run_all = tk.Button(p, text="⚡  Run ALL & Compare",
+                             command=self._run_all,
+                             font=F(11, bold=True),
+                             bg=C.ACCENT, fg=C.BG,
+                             relief="flat", cursor="hand2", pady=9,
+                             activebackground=C.MAUVE,
+                             activeforeground=C.BG)
+        run_all.pack(fill="x", padx=10, pady=5)
+        self._hover(run_all, C.MAUVE, C.ACCENT, C.BG)
 
         hline()
 
-        tk.Button(parent, text="💾  Export output.csv",
-                  command=self._export,
-                  font=("Consolas", 10), bg=self.BG3,
-                  fg=self.YELLOW, relief="flat",
-                  cursor="hand2", pady=6).pack(fill="x", padx=8, pady=2)
+        # ── Export ──
+        sec("EXPORT  —  Chế độ 1: từng file")
+        for nm, col in [("FIFO", C.ALGO["FIFO"]),
+                        ("LRU",  C.ALGO["LRU"]),
+                        ("OPT",  C.ALGO["OPT"])]:
+            self._lbtn(p, f"💾  Export {nm} CSV",
+                       lambda n=nm: self._export_single(n), col, size=9)
 
-        tk.Button(parent, text="🧪  Run Unit Tests",
-                  command=self._run_tests,
-                  font=("Consolas", 10), bg=self.BG3,
-                  fg=self.YELLOW, relief="flat",
-                  cursor="hand2", pady=6).pack(fill="x", padx=8, pady=2)
+        sec("EXPORT  —  Chế độ 2: cả 3 file")
+        batch_btn = tk.Button(p, text="📦  Xuất 3 CSV (FIFO · LRU · OPT)",
+                               command=self._batch_csv,
+                               font=F(10, bold=True),
+                               bg=C.BG3, fg=C.YELLOW,
+                               relief="flat", cursor="hand2",
+                               pady=9, padx=8,
+                               activebackground=C.SURFACE,
+                               activeforeground=C.YELLOW)
+        batch_btn.pack(fill="x", padx=10, pady=3)
+        self._hover(batch_btn, C.SURFACE, C.BG3, C.YELLOW)
 
-        tk.Button(parent, text="👥  Team Info",
-                  command=self._show_team,
-                  font=("Consolas", 10), bg=self.BG3,
-                  fg=self.TEXT2, relief="flat",
-                  cursor="hand2", pady=6).pack(fill="x", padx=8, pady=2)
+        hline()
 
-    # ---- RIGHT PANEL -------------------------------------------
+        # ── Tools ──
+        sec("TOOLS")
+        self._lbtn(p, "🧪  Run Unit Tests", self._open_tests, C.TEXT2, size=9)
+
+    # ── Custom frame-size slider ────────────────────────────────────────
+    def _build_frame_slider(self, parent):
+        """Slider row với số hiển thị lớn và rõ."""
+        outer = tk.Frame(parent, bg=C.BG2)
+        outer.pack(fill="x", padx=10, pady=(0, 4))
+
+        # Value badge (left)
+        badge = tk.Frame(outer, bg=C.ACCENT, padx=10, pady=4)
+        badge.pack(side="left")
+        self._fs_lbl = tk.Label(badge, textvariable=self.frame_size,
+                                 font=F(14, bold=True),
+                                 bg=C.ACCENT, fg=C.BG, width=2)
+        self._fs_lbl.pack()
+
+        # Slider
+        slider = tk.Scale(outer, from_=1, to=10,
+                          variable=self.frame_size,
+                          orient="horizontal",
+                          showvalue=False,
+                          bg=C.BG2, fg=C.TEXT,
+                          troughcolor=C.BG3,
+                          activebackground=C.ACCENT,
+                          highlightthickness=0,
+                          sliderlength=22,
+                          width=12,
+                          font=F(8))
+        slider.pack(side="left", fill="x", expand=True, padx=(8, 0))
+
+        # Tick labels
+        tick_row = tk.Frame(parent, bg=C.BG2)
+        tick_row.pack(fill="x", padx=10, pady=(0, 2))
+        tk.Label(tick_row, text="1", font=F(8),
+                 bg=C.BG2, fg=C.TEXT2).pack(side="left")
+        tk.Label(tick_row, text="10", font=F(8),
+                 bg=C.BG2, fg=C.TEXT2).pack(side="right")
+
+        # Update badge bg on change
+        def _on_change(*_):
+            self._fs_lbl.config(bg=C.ACCENT)
+            badge.config(bg=C.ACCENT)
+        self.frame_size.trace_add("write", _on_change)
+
+    # ── helpers ────────────────────────────────────────────────────────
+    def _lbtn(self, parent, text, cmd, fg, size=10):
+        b = tk.Button(parent, text=text, command=cmd,
+                      font=F(size, bold=True),
+                      bg=C.BG3, fg=fg,
+                      relief="flat", cursor="hand2",
+                      pady=7, padx=8,
+                      activebackground=C.SURFACE,
+                      activeforeground=fg)
+        b.pack(fill="x", padx=10, pady=2)
+        self._hover(b, C.SURFACE, C.BG3, fg)
+        return b
+
+    @staticmethod
+    def _hover(btn, enter_bg, leave_bg, fg):
+        btn.bind("<Enter>", lambda _: btn.config(bg=enter_bg))
+        btn.bind("<Leave>", lambda _: btn.config(bg=leave_bg))
+
+    # ── RIGHT PANEL (3 tabs) ────────────────────────────────────
     def _build_right(self, parent):
-        style = ttk.Style()
-        style.theme_use("default")
-        style.configure("TNotebook", background=self.BG, borderwidth=0)
-        style.configure("TNotebook.Tab",
-                         background=self.BG3, foreground=self.TEXT2,
-                         font=("Consolas", 10, "bold"), padding=[14, 6])
-        style.map("TNotebook.Tab",
-                  background=[("selected", self.ACCENT)],
-                  foreground=[("selected", self.BG)])
+        self._nb = ttk.Notebook(parent)
+        self._nb.pack(fill="both", expand=True)
 
-        self.nb = ttk.Notebook(parent)
-        self.nb.pack(fill="both", expand=True)
+        self._tab_gantt   = GanttTab(self._nb)
+        self._tab_compare = CompareTab(self._nb)
+        self._tab_tests   = tk.Frame(self._nb, bg=C.BG)
 
-        self.tab_gantt   = tk.Frame(self.nb, bg=self.BG)
-        self.tab_compare = tk.Frame(self.nb, bg=self.BG)
-        self.tab_stats   = tk.Frame(self.nb, bg=self.BG)
+        self._nb.add(self._tab_gantt,   text="  Gantt Chart  ")
+        self._nb.add(self._tab_compare, text="  Comparison  ")
+        self._nb.add(self._tab_tests,   text="  Unit Tests  ")
 
-        self.nb.add(self.tab_gantt,   text="  Gantt Chart  ")
-        self.nb.add(self.tab_compare, text="  Comparison  ")
-        self.nb.add(self.tab_stats,   text="  Statistics  ")
+        self._build_tests_tab(self._tab_tests)
 
-        self._build_gantt_tab(self.tab_gantt)
-        self._build_compare_tab(self.tab_compare)
-        self._build_stats_tab(self.tab_stats)
-
-    def _build_gantt_tab(self, parent):
-        self.gantt_title = tk.Label(parent,
-                                    text="Select an algorithm and click Run",
-                                    font=("Consolas", 12, "bold"),
-                                    bg=self.BG, fg=self.TEXT2)
-        self.gantt_title.pack(pady=(10, 4))
-
-        pills = tk.Frame(parent, bg=self.BG)
-        pills.pack(pady=(0, 8))
-        self.lbl_faults = self._pill(pills, "—", "Page Faults", self.FAULT)
-        self.lbl_hits   = self._pill(pills, "—", "Page Hits",   self.HIT)
-        self.lbl_rate   = self._pill(pills, "—", "Hit Rate",    self.ACCENT)
-        self.lbl_time   = self._pill(pills, "—", "Exec Time",   self.YELLOW)
-
-        leg = tk.Frame(parent, bg=self.BG)
-        leg.pack(pady=(0, 6))
-        for color, label in [
-            (self.FAULT,  "Page Fault"),
-            (self.HIT,    "Page Hit"),
-            (self.NEW_PG, "New Frame"),
-            (self.BG3,    "Unchanged"),
-        ]:
-            tk.Frame(leg, bg=color, width=12, height=12).pack(side="left", padx=(10,3))
-            tk.Label(leg, text=label, font=("Consolas", 9),
-                     bg=self.BG, fg=self.TEXT2).pack(side="left", padx=(0,8))
-
-        wrap = tk.Frame(parent, bg=self.BORDER, bd=1)
-        wrap.pack(fill="both", expand=True, padx=10, pady=(0,10))
-
-        self.gantt_canvas = tk.Canvas(wrap, bg=self.BG2, highlightthickness=0)
-        hbar = tk.Scrollbar(wrap, orient="horizontal", command=self.gantt_canvas.xview)
-        vbar = tk.Scrollbar(wrap, orient="vertical",   command=self.gantt_canvas.yview)
-        self.gantt_canvas.configure(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
-        hbar.pack(side="bottom", fill="x")
-        vbar.pack(side="right",  fill="y")
-        self.gantt_canvas.pack(fill="both", expand=True)
-
-    def _build_compare_tab(self, parent):
-        tk.Label(parent, text="Algorithm Comparison",
-                 font=("Consolas", 13, "bold"),
-                 bg=self.BG, fg=self.WHITE).pack(pady=(14, 4))
-        tk.Label(parent, text='Click "Run ALL & Compare" to see results',
-                 font=("Consolas", 10),
-                 bg=self.BG, fg=self.TEXT2).pack()
-        self.compare_frame = tk.Frame(parent, bg=self.BG)
-        self.compare_frame.pack(fill="both", expand=True, padx=20, pady=10)
-
-    def _build_stats_tab(self, parent):
-        tk.Label(parent, text="Proof of Correctness",
-                 font=("Consolas", 13, "bold"),
-                 bg=self.BG, fg=self.WHITE).pack(pady=(14, 2))
-        tk.Label(parent,
-                 text="Compared with OS Concepts 10th Edition — Silberschatz et al.",
-                 font=("Consolas", 9),
-                 bg=self.BG, fg=self.TEXT2).pack()
-        self.stats_frame = tk.Frame(parent, bg=self.BG)
-        self.stats_frame.pack(fill="both", expand=True, padx=20, pady=10)
-
-    def _pill(self, parent, val, label, color):
-        f = tk.Frame(parent, bg=self.BG3, padx=14, pady=6)
-        f.pack(side="left", padx=6)
-        v = tk.Label(f, text=val, font=("Consolas", 18, "bold"),
-                     bg=self.BG3, fg=color)
-        v.pack()
-        tk.Label(f, text=label, font=("Consolas", 9),
-                 bg=self.BG3, fg=self.TEXT2).pack()
-        return v
-
+    # ── Status bar ──────────────────────────────────────────────────────
     def _build_statusbar(self):
-        self.status_var = tk.StringVar(
-            value="Ready  |  OS_VME_08 Group 5  |  HCMUTRANS")
-        tk.Label(self, textvariable=self.status_var,
-                 font=("Consolas", 9), bg=self.BG3,
-                 fg=self.TEXT2, anchor="w",
-                 padx=12, pady=4).pack(fill="x", side="bottom")
+        self._status_var = tk.StringVar(value="Ready  |  OS_VME_08 Group 5  |  HCMUTRANS")
+        bar = tk.Label(self, textvariable=self._status_var,
+                        font=F(9), bg=C.BG3, fg=C.TEXT2,
+                        anchor="w", padx=14, pady=5)
+        bar.pack(fill="x", side="bottom")
 
     def _set_status(self, msg):
-        self.status_var.set(msg)
+        self._status_var.set(msg)
         self.update_idletasks()
 
-    # ============================================================
-    #  ACTIONS
-    # ============================================================
+    # ── Actions ────────────────────────────────────────────────────────
     def _load_csv(self):
         path = filedialog.askopenfilename(
             title="Select input CSV",
-            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-        )
-        if not path:
-            return
+            filetypes=[("CSV files","*.csv"),("All files","*.*")])
+        if not path: return
         try:
             fs, rs = FileHandler.read_input(path)
             self.frame_size.set(fs)
             self.ref_string = rs
-            self.file_lbl.config(text=os.path.basename(path))
-            self.ref_entry.delete("1.0", "end")
-            self.ref_entry.insert("1.0", ",".join(map(str, rs)))
+            self._file_lbl.config(text=os.path.basename(path))
+            self._ref_entry.delete("1.0", "end")
+            self._ref_entry.insert("1.0", ",".join(map(str, rs)))
             self._set_status(f"Loaded: {path}  |  {len(rs)} pages  |  {fs} frames")
         except Exception as e:
             messagebox.showerror("Load Error", str(e))
 
     def _parse_ref(self):
-        raw    = self.ref_entry.get("1.0", "end").strip()
-        tokens = [t.strip() for t in raw.split(",") if t.strip()]
+        raw = self._ref_entry.get("1.0", "end").strip()
         result = []
-        for t in tokens:
+        for t in raw.split(","):
+            t = t.strip()
+            if not t: continue
             try:
                 v = int(t)
-                if v < 0:
-                    raise ValueError(f"So trang am: {v}")
+                if v < 0: raise ValueError(f"Âm: {v}")
                 result.append(v)
             except ValueError as e:
-                raise ValueError(f"Reference string khong hop le: {e}")
-        if not result:
-            raise ValueError("Reference string trong.")
+                raise ValueError(f"Reference string không hợp lệ: {e}")
+        if not result: raise ValueError("Reference string trống.")
         return result
 
-    def _run(self, algo_name):
+    def _run(self, algo_name: str):
         try:
             refs = self._parse_ref()
             n    = self.frame_size.get()
@@ -351,26 +373,23 @@ class App(tk.Tk):
 
         self.ref_string = refs
         self._set_status(f"Running {algo_name}...")
-
-        algos  = {"FIFO": FIFO, "LRU": LRU, "OPT": OPT}
-        colors = {"FIFO": self.NEW_PG, "LRU": self.HIT, "OPT": "#cba6f7"}
-
+        Cls   = AlgoRegistry.get(algo_name)
+        color = C.ALGO.get(algo_name, C.ACCENT)
         t0    = time.perf_counter()
-        steps = algos[algo_name].run(refs, n)
+        steps = Cls.run(refs, n)
         ms    = (time.perf_counter() - t0) * 1000
 
         self.last_steps = steps
         self.last_algo  = algo_name
         self.last_exec  = ms
 
-        self._draw_gantt(algo_name, steps, n, colors[algo_name])
-        self._update_stats(algo_name, steps, refs, n)
-        self.nb.select(0)
+        self._tab_gantt.render(algo_name, steps, n, ms, color)
+        self._nb.select(0)
+
         faults = sum(1 for s in steps if s.is_fault)
         self._set_status(
-            f"{algo_name}  |  {faults} faults  "
-            f"|  {len(steps)-faults} hits  |  {ms:.3f} ms"
-        )
+            f"{algo_name}  |  {faults} faults  |  {len(steps)-faults} hits"
+            f"  |  {ms:.3f} ms  |  frames: {n}  |  refs: {len(refs)}")
 
     def _run_all(self):
         try:
@@ -381,347 +400,196 @@ class App(tk.Tk):
 
         self.ref_string = refs
         self._set_status("Running all algorithms...")
+        all_r: dict[str, tuple[list[Step], float]] = {}
+        for nm in AlgoRegistry.all_names():
+            Cls = AlgoRegistry.get(nm)
+            t0  = time.perf_counter()
+            st  = Cls.run(refs, n)
+            ms  = (time.perf_counter() - t0) * 1000
+            all_r[nm] = (st, ms)
 
-        results, times = {}, {}
-        for Cls, name in [(FIFO,"FIFO"),(LRU,"LRU"),(OPT,"OPT")]:
-            t0 = time.perf_counter()
-            results[name] = Cls.run(refs, n)
-            times[name]   = (time.perf_counter() - t0) * 1000
+        self._all_results = all_r
+        opt_st, opt_ms = all_r["OPT"]
+        self.last_steps = opt_st; self.last_algo = "OPT"; self.last_exec = opt_ms
 
-        self.last_steps = results["OPT"]
-        self.last_algo  = "OPT"
-        self.last_exec  = times["OPT"]
+        self._tab_gantt.render("OPT (after Run ALL)", opt_st, n, opt_ms, C.ALGO["OPT"])
+        results_only = {nm: st for nm,(st,_) in all_r.items()}
+        times_only   = {nm: ms for nm,(_,ms) in all_r.items()}
+        self._tab_compare.render(results_only, times_only, refs, n)
+        self._nb.select(1)
 
-        self._draw_gantt("ALL (showing OPT)", results["OPT"], n, "#cba6f7")
-        self._draw_comparison(results, times, refs, n)
-        self._update_stats("ALL", results["OPT"], refs, n)
-        self.nb.select(1)
-        self._set_status("All algorithms done. See Comparison tab.")
+        self._set_status(
+            "All done — " + "  |  ".join(
+                f"{nm}: {sum(1 for s in st if s.is_fault)}F"
+                for nm,(st,_) in all_r.items()))
 
-    # ============================================================
-    #  DRAW GANTT
-    # ============================================================
-    def _draw_gantt(self, algo_name, steps, n, header_color):
-        c = self.gantt_canvas
-        c.delete("all")
+    # ── Export single algo (chế độ 1) ────────────────────────────────
+    def _export_single(self, algo_name: str):
+        """Xuất CSV của một thuật toán cụ thể.
+        Ưu tiên lấy từ _all_results (Run ALL), fallback sang last_steps nếu cùng algo.
+        """
+        steps, exec_ms = None, 0.0
+
+        if self._all_results and algo_name in self._all_results:
+            steps, exec_ms = self._all_results[algo_name]
+        elif self.last_algo == algo_name and self.last_steps:
+            steps, exec_ms = self.last_steps, self.last_exec
+
         if not steps:
-            c.create_text(300, 100, text="No data",
-                          fill=self.TEXT2, font=("Consolas", 12))
+            messagebox.showwarning(
+                "Export",
+                f"Chưa có kết quả {algo_name}.\n"
+                f"Hãy nhấn '▶ Run {algo_name}' hoặc '⚡ Run ALL' trước.")
             return
 
-        CW, CH   = 44, 36
-        LABEL_W  = 90
-        PAD_TOP  = 20
-        PAD_LEFT = 10
-
-        total_w = PAD_LEFT + LABEL_W + len(steps) * CW + 20
-        total_h = PAD_TOP  + (n + 3) * CH + 20
-        c.configure(scrollregion=(0, 0, total_w, total_h))
-
-        faults = sum(1 for s in steps if s.is_fault)
-        hits   = len(steps) - faults
-        hr     = hits / len(steps) * 100
-        self.lbl_faults.config(text=str(faults))
-        self.lbl_hits.config(text=str(hits))
-        self.lbl_rate.config(text=f"{hr:.1f}%")
-        self.lbl_time.config(text=f"{self.last_exec:.2f}ms")
-        self.gantt_title.config(text=f"Algorithm: {algo_name}", fg=header_color)
-
-        def cell(col, row, text, bg, fg="#ffffff", bold=False):
-            x0 = PAD_LEFT + LABEL_W + col * CW
-            y0 = PAD_TOP  + row * CH
-            x1, y1 = x0+CW-1, y0+CH-1
-            c.create_rectangle(x0, y0, x1, y1,
-                                fill=bg, outline=self.BORDER, width=1)
-            font = ("Consolas", 10, "bold") if bold else ("Consolas", 10)
-            c.create_text((x0+x1)//2, (y0+y1)//2,
-                          text=str(text), fill=fg, font=font)
-
-        def row_lbl(row, text):
-            y0 = PAD_TOP + row * CH
-            y1 = y0 + CH
-            c.create_rectangle(PAD_LEFT, y0, PAD_LEFT+LABEL_W-1, y1,
-                                fill=self.BG3, outline=self.BORDER)
-            c.create_text(PAD_LEFT+LABEL_W//2, (y0+y1)//2,
-                          text=text, fill=self.TEXT2,
-                          font=("Consolas", 9))
-
-        row_lbl(0, "Page Ref")
-        for f in range(n):
-            row_lbl(f+1, f"Frame {f+1}")
-        row_lbl(n+1, "Fault / Hit")
-
-        for i, s in enumerate(steps):
-            # Step numbers
-            x0 = PAD_LEFT + LABEL_W + i * CW
-            c.create_text(x0+CW//2, PAD_TOP//2+4,
-                          text=str(i+1), fill=self.TEXT2,
-                          font=("Consolas", 8))
-            # Page row
-            cell(i, 0, s.page,
-                 self.FAULT if s.is_fault else self.HIT,
-                 self.BG, bold=True)
-            # Frame rows
-            for f in range(n):
-                if f < len(s.frames) and s.frames[f] != -1:
-                    is_new = s.is_fault and s.frames[f] == s.page
-                    cell(i, f+1, s.frames[f],
-                         self.NEW_PG if is_new else self.BG3,
-                         self.BG    if is_new else self.TEXT)
-                else:
-                    cell(i, f+1, "·", self.BG2, self.TEXT2)
-            # F/H row
-            cell(i, n+1,
-                 "F" if s.is_fault else "H",
-                 self.FAULT if s.is_fault else self.HIT,
-                 self.BG, bold=True)
-
-    # ============================================================
-    #  DRAW COMPARISON
-    # ============================================================
-    def _draw_comparison(self, results, times, refs, n):
-        for w in self.compare_frame.winfo_children():
-            w.destroy()
-
-        faults = {nm: sum(1 for s in st if s.is_fault)
-                  for nm, st in results.items()}
-        hits   = {nm: len(refs) - faults[nm] for nm in faults}
-        rates  = {nm: hits[nm] / len(refs) * 100 for nm in faults}
-        max_f  = max(faults.values()) or 1
-        colors = {"FIFO": self.NEW_PG, "LRU": self.HIT, "OPT": "#cba6f7"}
-
-        tk.Label(self.compare_frame,
-                 text=f"Input: {len(refs)} pages  |  {n} frames",
-                 font=("Consolas", 11),
-                 bg=self.BG, fg=self.TEXT2).pack(pady=(0,14))
-
-        for name in ["FIFO","LRU","OPT"]:
-            row = tk.Frame(self.compare_frame, bg=self.BG)
-            row.pack(fill="x", pady=6)
-            tk.Label(row, text=name, width=6,
-                     font=("Consolas", 13, "bold"),
-                     bg=self.BG, fg=colors[name]).pack(side="left")
-            bar_f = tk.Frame(row, bg=self.BORDER, height=32, width=500)
-            bar_f.pack(side="left", padx=10)
-            bar_f.pack_propagate(False)
-            fill_w = int(faults[name] / max_f * 498)
-            tk.Frame(bar_f, bg=colors[name],
-                     width=fill_w, height=30).place(x=1, y=1)
-            info = (f"  {faults[name]} faults  |  {hits[name]} hits  |  "
-                    f"{rates[name]:.1f}% hit rate  |  {times[name]:.3f} ms")
-            tk.Label(row, text=info, font=("Consolas", 10),
-                     bg=self.BG, fg=self.TEXT).pack(side="left")
-
-        best = min(faults, key=faults.get)
-        tk.Frame(self.compare_frame, bg=self.BORDER,
-                 height=1).pack(fill="x", pady=14)
-        tk.Label(self.compare_frame,
-                 text=f"✓  Best: {best}  ({faults[best]} faults)",
-                 font=("Consolas", 13, "bold"),
-                 bg=self.BG, fg=colors[best]).pack()
-
-        if faults["FIFO"] > faults["OPT"]:
-            tk.Label(self.compare_frame,
-                     text="⚠  FIFO may exhibit Belady's Anomaly",
-                     font=("Consolas", 10),
-                     bg=self.BG, fg=self.YELLOW).pack(pady=4)
-
-        # Table
-        tk.Frame(self.compare_frame, bg=self.BORDER,
-                 height=1).pack(fill="x", pady=10)
-        hdr = tk.Frame(self.compare_frame, bg=self.BG)
-        hdr.pack(fill="x")
-        for col, w in [("Algorithm",14),("Faults",10),
-                       ("Hits",10),("Hit Rate",12),("Exec (ms)",12)]:
-            tk.Label(hdr, text=col, width=w,
-                     font=("Consolas", 10, "bold"),
-                     bg=self.BG3, fg=self.ACCENT,
-                     relief="flat", pady=4).pack(side="left", padx=1)
-        for name in ["FIFO","LRU","OPT"]:
-            row2 = tk.Frame(self.compare_frame, bg=self.BG)
-            row2.pack(fill="x", pady=1)
-            for val, w in [
-                (name,14),(faults[name],10),(hits[name],10),
-                (f"{rates[name]:.1f}%",12),(f"{times[name]:.3f}",12)
-            ]:
-                tk.Label(row2, text=str(val), width=w,
-                         font=("Consolas", 10),
-                         bg=self.BG2, fg=colors[name],
-                         relief="flat", pady=4).pack(side="left", padx=1)
-
-    # ============================================================
-    #  STATS TAB
-    # ============================================================
-    def _update_stats(self, algo_name, steps, refs, n):
-        for w in self.stats_frame.winfo_children():
-            w.destroy()
-
-        # Proof section
-        pf = tk.LabelFrame(self.stats_frame,
-                            text="  Proof vs OS Concepts 10th Edition  ",
-                            font=("Consolas", 10, "bold"),
-                            bg=self.BG, fg=self.ACCENT,
-                            labelanchor="nw", relief="flat", bd=1)
-        pf.pack(fill="x", pady=(0,10))
-
-        tb_refs = [7,0,1,2,0,3,0,4,2,3,0,3]
-        tb_n    = 3
-        algos_map = {"FIFO": FIFO, "LRU": LRU, "OPT": OPT}
-
-        hdr = tk.Frame(pf, bg=self.BG)
-        hdr.pack(fill="x", padx=8, pady=(8,2))
-        for col, wid in [("Algorithm",12),("Got",8),("Status",10)]:
-            tk.Label(hdr, text=col, width=wid,
-                     font=("Consolas", 10, "bold"),
-                     bg=self.BG3, fg=self.TEXT2,
-                     pady=3).pack(side="left", padx=1)
-
-        for name in ["FIFO","LRU","OPT"]:
-            got = algos_map[name].count_faults(
-                algos_map[name].run(tb_refs, tb_n))
-            row = tk.Frame(pf, bg=self.BG)
-            row.pack(fill="x", padx=8, pady=1)
-            for val, wid in [(name,12),(str(got),8)]:
-                tk.Label(row, text=val, width=wid,
-                         font=("Consolas", 10),
-                         bg=self.BG2, fg=self.TEXT,
-                         pady=3).pack(side="left", padx=1)
-            tk.Label(row, text=f"{got} faults", width=10,
-                     font=("Consolas", 10, "bold"),
-                     bg=self.BG2, fg=self.HIT,
-                     pady=3).pack(side="left", padx=1)
-
-        tk.Label(pf,
-                 text="Reference: 7,0,1,2,0,3,0,4,2,3,0,3  |  3 frames",
-                 font=("Consolas", 8),
-                 bg=self.BG, fg=self.TEXT2).pack(padx=8, pady=(2,8))
-
-        # Current run
-        if steps:
-            faults = sum(1 for s in steps if s.is_fault)
-            hits   = len(steps) - faults
-            cur = tk.LabelFrame(self.stats_frame,
-                                text=f"  Current Run: {algo_name}  ",
-                                font=("Consolas", 10, "bold"),
-                                bg=self.BG, fg=self.YELLOW,
-                                labelanchor="nw", relief="flat", bd=1)
-            cur.pack(fill="x")
-            for lbl, val, color in [
-                ("Total References", len(steps),            self.TEXT),
-                ("Frame Size",       n,                     self.TEXT),
-                ("Page Faults",      faults,                self.FAULT),
-                ("Page Hits",        hits,                  self.HIT),
-                ("Hit Rate",         f"{hits/len(steps)*100:.2f}%", self.ACCENT),
-                ("Fault Rate",       f"{faults/len(steps)*100:.2f}%", self.FAULT),
-                ("Exec Time",        f"{self.last_exec:.3f} ms",    self.YELLOW),
-            ]:
-                r = tk.Frame(cur, bg=self.BG)
-                r.pack(fill="x", padx=8, pady=1)
-                tk.Label(r, text=lbl, width=20, anchor="w",
-                         font=("Consolas", 10),
-                         bg=self.BG, fg=self.TEXT2).pack(side="left")
-                tk.Label(r, text=str(val),
-                         font=("Consolas", 10, "bold"),
-                         bg=self.BG, fg=color).pack(side="left")
-
-    # ============================================================
-    #  EXPORT
-    # ============================================================
-    def _export(self):
-        if not self.last_steps:
-            messagebox.showwarning("Export", "No results. Run an algorithm first.")
-            return
         path = filedialog.asksaveasfilename(
+            title=f"Lưu kết quả {algo_name}",
             defaultextension=".csv",
-            initialfile=f"output_{self.last_algo}.csv",
-            filetypes=[("CSV files","*.csv")]
-        )
-        if not path:
-            return
+            initialfile=f"{algo_name}_result.csv",
+            filetypes=[("CSV files", "*.csv")])
+        if not path: return
+
         try:
             refs = self._parse_ref()
-            FileHandler.write_output(path, self.last_algo,
-                                     self.frame_size.get(),
-                                     refs, self.last_steps, self.last_exec)
-            messagebox.showinfo("Export", f"Saved to:\n{path}")
+            FileHandler.write_output(path, algo_name,
+                                      self.frame_size.get(), refs,
+                                      steps, exec_ms)
+            messagebox.showinfo("Export", f"✓ Đã lưu {algo_name}:\n{path}")
+            self._set_status(f"Exported {algo_name} → {path}")
         except Exception as e:
             messagebox.showerror("Export Error", str(e))
 
-    # ============================================================
-    #  UNIT TESTS WINDOW
-    # ============================================================
-    def _run_tests(self):
-        win = tk.Toplevel(self)
-        win.title("Unit Tests — OS_VME_08 Group 5")
-        win.geometry("600x520")
-        win.configure(bg=self.BG)
-        tk.Label(win, text="Unit Test Results",
-                 font=("Consolas", 13, "bold"),
-                 bg=self.BG, fg=self.ACCENT).pack(pady=(14,4))
-        tk.Label(win, text="Verified against OS Concepts 10th Ed.",
-                 font=("Consolas", 9),
-                 bg=self.BG, fg=self.TEXT2).pack()
+    # ── _export_csv giữ lại cho tương thích (xuất algo hiện tại) ────────
+    def _export_csv(self):
+        if not self.last_steps:
+            messagebox.showwarning("Export", "Run an algorithm first."); return
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv",
+            initialfile=f"output_{self.last_algo}.csv",
+            filetypes=[("CSV files", "*.csv")])
+        if not path: return
+        try:
+            refs = self._parse_ref()
+            FileHandler.write_output(path, self.last_algo,
+                                      self.frame_size.get(), refs,
+                                      self.last_steps, self.last_exec)
+            messagebox.showinfo("Export", f"Saved:\n{path}")
+            self._set_status(f"Exported → {path}")
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e))
 
-        frame = tk.Frame(win, bg=self.BG)
-        frame.pack(fill="both", expand=True, padx=16, pady=10)
+    def _batch_csv(self):
+        if not self._all_results:
+            messagebox.showwarning("Batch Export",'Run "Run ALL & Compare" first.'); return
+        folder = filedialog.askdirectory(title="Select output folder")
+        if not folder: return
+        try:
+            refs  = self._parse_ref()
+            n     = self.frame_size.get()
+            paths = FileHandler.batch_export(folder, n, refs, self._all_results)
+            messagebox.showinfo("Batch Export","Exported:\n"+"\n".join(paths))
+            self._set_status(f"Batch exported {len(paths)} files → {folder}")
+        except Exception as e:
+            messagebox.showerror("Export Error", str(e))
 
-        results, passed, failed = TestRunner().run_all()
+    # ── Unit Tests tab ──────────────────────────────────────────────────
+    def _build_tests_tab(self, parent):
+        tk.Label(parent, text="Unit Tests",
+                 font=F(13, bold=True), bg=C.BG, fg=C.WHITE
+                 ).pack(pady=(16, 2))
+        tk.Label(parent,
+                 text="Verified against OS Concepts 10th Edition — Silberschatz et al.",
+                 font=F(9), bg=C.BG, fg=C.TEXT2).pack()
+        HLine(parent).pack(fill="x", padx=16, pady=8)
+
+        run_btn = tk.Button(parent,
+                             text="▶  Run All Unit Tests",
+                             font=F(11, bold=True),
+                             bg=C.ACCENT, fg=C.BG,
+                             relief="flat", cursor="hand2", pady=9,
+                             command=lambda: self._run_tests_inline(rf))
+        run_btn.pack(padx=24, pady=(0, 10))
+
+        rf = tk.Frame(parent, bg=C.BG)
+        rf.pack(fill="both", expand=True, padx=20, pady=4)
+
+    def _run_tests_inline(self, result_frame):
+        for w in result_frame.winfo_children(): w.destroy()
+        self._set_status("Running unit tests...")
+
+        # Scrollable list
+        outer  = tk.Canvas(result_frame, bg=C.BG, highlightthickness=0)
+        vb     = tk.Scrollbar(result_frame, orient="vertical", command=outer.yview)
+        outer.configure(yscrollcommand=vb.set)
+        vb.pack(side="right", fill="y")
+        outer.pack(side="left", fill="both", expand=True)
+        inner = tk.Frame(outer, bg=C.BG)
+        cw    = outer.create_window((0,0), window=inner, anchor="nw")
+        inner.bind("<Configure>",
+                   lambda e: (outer.configure(scrollregion=outer.bbox("all")),
+                              outer.itemconfig(cw, width=outer.winfo_width())))
+
+        tr = TestRunner()
+        results, passed, failed = tr.run_all()
+
         for status, name in results:
-            row = tk.Frame(frame, bg=self.BG)
-            row.pack(fill="x", pady=2)
-            color = self.HIT if status == "PASS" else self.FAULT
+            row = tk.Frame(inner, bg=C.BG); row.pack(fill="x", pady=1)
+            col = C.HIT if status == "PASS" else C.FAULT
             tk.Label(row, text=f"[{status}]", width=7,
-                     font=("Consolas", 10, "bold"),
-                     bg=self.BG2, fg=color).pack(side="left", padx=(0,6))
-            tk.Label(row, text=name, font=("Consolas", 10),
-                     bg=self.BG, fg=self.TEXT).pack(side="left")
+                     font=F(10, bold=True), bg=C.BG2, fg=col
+                     ).pack(side="left", padx=(0,6))
+            tk.Label(row, text=name, font=F(10), bg=C.BG, fg=C.TEXT
+                     ).pack(side="left")
 
-        tk.Frame(win, bg=self.BORDER, height=1).pack(fill="x", padx=16)
-        sc = self.HIT if failed == 0 else self.FAULT
-        tk.Label(win,
-                 text=f"Passed: {passed}  |  Failed: {failed}  |  Total: {passed+failed}",
-                 font=("Consolas", 11, "bold"),
-                 bg=self.BG, fg=sc).pack(pady=10)
+        HLine(inner).pack(fill="x", pady=5)
+        sc = C.HIT if failed == 0 else C.FAULT
+        tk.Label(inner,
+                 text=(f"Passed: {passed}  |  Failed: {failed}  |  "
+                       f"Total: {passed+failed}   "
+                       + ("ALL PASSED ✓" if failed == 0 else f"{failed} FAILED ✗")),
+                 font=F(11, bold=True), bg=C.BG, fg=sc).pack(pady=8)
 
-    # ============================================================
-    #  TEAM INFO WINDOW
-    # ============================================================
+        self._set_status(f"Tests: {passed}/{passed+failed} passed" +
+                          (" ✓" if failed == 0 else f"  —  {failed} FAILED"))
+
+    # ── Open Unit Tests ─────────────────────────────────────────────────
+    def _open_tests(self):
+        self._nb.select(2)
+
+
+    # ── Team Info ───────────────────────────────────────────────────────
     def _show_team(self):
         win = tk.Toplevel(self)
         win.title("Team Info — OS_VME_08 Group 5")
         win.geometry("560x400")
-        win.configure(bg=self.BG)
+        win.configure(bg=C.BG)
+
         tk.Label(win, text="OS_VME_08 — Nhóm 5",
-                 font=("Consolas", 14, "bold"),
-                 bg=self.BG, fg=self.ACCENT).pack(pady=(14,2))
+                 font=F(14, bold=True), bg=C.BG, fg=C.ACCENT).pack(pady=(14,2))
         tk.Label(win,
                  text="Đại học Giao thông Vận tải TP.HCM  |  Mã lớp: 7480201390613",
-                 font=("Consolas", 9),
-                 bg=self.BG, fg=self.TEXT2).pack()
-        tk.Frame(win, bg=self.BORDER, height=1).pack(fill="x", padx=16, pady=10)
+                 font=F(9), bg=C.BG, fg=C.TEXT2).pack()
+        HLine(win).pack(fill="x", padx=16, pady=10)
+
         members = [
-            ("Phan Đình Phát",        "060206002816", "Algorithm Developer"),
-            ("Nguyễn Thị Xuân Tuyền", "054306001845", "Data & File Handler"),
-            ("Nguyễn Thanh Tuấn",     "051206002660", "GUI Developer"),
-            ("Dương Trọng Nghĩa",     "066206008908", "Tester & Integrator"),
-            ("Kim Nhựt Hoàng",        "084206006510", "Documentation"),
+            ("Phan Đình Phát",         "060206002816", "Algorithm Developer"),
+            ("Nguyễn Thị Xuân Tuyền",  "054306001845", "Data & File Handler"),
+            ("Nguyễn Thanh Tuấn",      "051206002660", "GUI Developer"),
+            ("Dương Trọng Nghĩa",      "066206008908", "Tester & Integrator"),
+            ("Kim Nhựt Hoàng",         "084206006510", "Documentation"),
         ]
         for i, (name, sid, role) in enumerate(members, 1):
-            row = tk.Frame(win, bg=self.BG2 if i%2==0 else self.BG)
-            row.pack(fill="x", padx=16, pady=1)
-            tk.Label(row, text=f"{i}.", width=3,
-                     font=("Consolas", 10, "bold"),
-                     bg=row["bg"], fg=self.ACCENT).pack(side="left", padx=(8,0))
+            bg  = C.BG2 if i % 2 == 0 else C.BG
+            row = tk.Frame(win, bg=bg); row.pack(fill="x", padx=16, pady=2)
+            tk.Label(row, text=f"{i}.", width=3, font=F(10, bold=True),
+                     bg=bg, fg=C.ACCENT).pack(side="left", padx=(8,0))
             tk.Label(row, text=name, width=24, anchor="w",
-                     font=("Consolas", 10, "bold"),
-                     bg=row["bg"], fg=self.YELLOW).pack(side="left")
-            tk.Label(row, text=sid, width=14,
-                     font=("Consolas", 9),
-                     bg=row["bg"], fg=self.TEXT2).pack(side="left")
-            tk.Label(row, text=role, font=("Consolas", 9),
-                     bg=row["bg"], fg=self.HIT).pack(side="left", padx=8)
-        tk.Frame(win, bg=self.BORDER, height=1).pack(fill="x", padx=16, pady=10)
+                     font=F(10, bold=True), bg=bg, fg=C.YELLOW).pack(side="left")
+            tk.Label(row, text=sid, width=14, font=F(9),
+                     bg=bg, fg=C.TEXT2).pack(side="left")
+            tk.Label(row, text=role, font=F(9), bg=bg, fg=C.HIT).pack(side="left", padx=8)
+
+        HLine(win).pack(fill="x", padx=16, pady=10)
         tk.Label(win,
                  text="Ref: OS Concepts 10th Ed. — Silberschatz, Galvin, Gagne",
-                 font=("Consolas", 9),
-                 bg=self.BG, fg=self.TEXT2).pack()
+                 font=F(9), bg=C.BG, fg=C.TEXT2).pack()
