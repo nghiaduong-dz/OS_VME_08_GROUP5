@@ -11,7 +11,7 @@
 | **Full name** | **Student ID** | **Mission** |
 | :--- | :--- | :--- |
 | Phan Đình Phát | 060206002816 | Algorithm Developer: Implement FIFO, LRU, OPT and calculate page faults/hits. |
-| Nguyễn Thị Xuân Tuyền | 054306001845 | Data & File Handler: Read input CSV and export output CSV. |
+| Nguyễn Thị Xuân Tuyền | 054306001845 | Data & File Handler: Read input CSV and export output CSV and do more and more but leader give me shits |
 | Nguyễn Thanh Tuấn | 051206002660 | GUI Developer: Build GUI, load CSV, and display results. |
 | Dương Trọng Nghĩa | 066206008908 | You're not doing anything, so stop bragging. |
 | Kim Nhựt Hoàng | 084206006510 | your documentation is absolute garbage yet you give yourself a 100% contribution rate, are you tripping? Your task delegation is a joke and then you have the audacity to deduct everyone else's percentages, who the hell do you think you are? |
