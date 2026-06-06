@@ -8,10 +8,10 @@
 - **Group:** 5
 
 ## Team Members & Duty Roster
-| **Full name** |**Mission** |
-| :---            :--- |
+| **Full name** | **Mission** |
+| :--- | :--- |
 | Phan Đình Phát | Algorithm Developer: Implement FIFO, LRU, OPT and calculate page faults/hits. |
-| Nguyễn Thị Xuân Tuyền | Data & File Handler: Read input CSV and export output CSV and do more and more but leader give someone shit|
+| Nguyễn Thị Xuân Tuyền | Data & File Handler: Read input CSV and export output CSV and do more and more but leader give someone shit |
 | Nguyễn Thanh Tuấn | GUI Developer: Build GUI, load CSV, and display results. |
 | Dương Trọng Nghĩa | You're not doing anything, so stop bragging. |
 | Kim Nhựt Hoàng | your documentation is absolute garbage yet you give yourself a 100% contribution rate, are you tripping? Your task delegation is a joke and then you have the audacity to deduct everyone else's percentages, who the hell do you think you are? |
