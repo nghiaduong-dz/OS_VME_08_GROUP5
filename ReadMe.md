@@ -8,7 +8,7 @@
 - **Group:** 5
 
 ## Team Members & Duty Roster
-| **Full name** | **Student ID** | **Mission** |
+| **Full name** |**Mission** |
 | :--- | :--- | :--- |
 | Phan Đình Phát | Algorithm Developer: Implement FIFO, LRU, OPT and calculate page faults/hits. |
 | Nguyễn Thị Xuân Tuyền | Data & File Handler: Read input CSV and export output CSV and do more and more but leader give someone shit|
